@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   sync:
+    if: github.repository == 'zenbu-labs/terminal-browser'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

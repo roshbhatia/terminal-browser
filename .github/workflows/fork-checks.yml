@@ -1,0 +1,42 @@
+name: Fork checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fork-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: pixel/engine
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: PIXEL_SKIP_DOWNLOAD=1 node pixel/packages/pixel/scripts/postinstall.mjs
+      - run: pnpm --filter shared build
+      - run: pnpm --filter @zenbu-labs/pixel build
+      - run: pnpm --filter terminal-browser test
+      - run: cargo test --manifest-path pixel/engine/Cargo.toml -p pixel-terminal
+      - run: python3 scripts/test-sync-upstream.py

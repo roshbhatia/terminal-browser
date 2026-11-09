@@ -25,6 +25,7 @@ concurrency:
 
 jobs:
   prepare:
+    if: github.repository == 'zenbu-labs/terminal-browser'
     runs-on: ubuntu-latest
     outputs:
       channel: ${{ steps.v.outputs.channel }}
