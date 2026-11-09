@@ -1,0 +1,31 @@
+.github/workflows/upstream-sync.yml
+  s_4541d03bc240df::t_479e9953131e0b 1-33
+.github/workflows/fork-checks.yml
+  s_4541d03bc240df::t_479e9953131e0b 1-42
+.github/workflows/pixel-electron-sync.yml
+  s_4541d03bc240df::t_fc2c95e285cb93 20
+.github/workflows/release.yml
+  s_4541d03bc240df::t_fc2c95e285cb93 28
+.github/workflows/pixel-release.yml
+  s_4541d03bc240df::t_fc2c95e285cb93 31
+scripts/sync-upstream.sh
+  s_4541d03bc240df::t_7307053cc9be68 1-60
+scripts/test-sync-upstream.py
+  s_4541d03bc240df::t_b969c8fb85bed3 1-129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "77a671f136d189187049d4a1a97d4bb92268c8ea",
+  "prompts": {},
+  "sessions": {
+    "s_4541d03bc240df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bd09-f672-7982-8a4f-e1e208a96834",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Roshan Bhatia <rshnbhatia@gmail.com>"
+    }
+  }
+}
