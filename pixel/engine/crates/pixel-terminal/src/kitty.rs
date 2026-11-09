@@ -74,7 +74,8 @@ pub(crate) fn kitty_query_medium(
 ) -> Vec<u8> {
     let payload = BASE64.encode(name);
     let t = medium.key();
-    let seq = format!("\x1b_Gi={image_id},a=q,t={t},f=32,s={width},v={height};{payload}\x1b\\");
+    let size = u64::from(width) * u64::from(height) * 4;
+    let seq = format!("\x1b_Gi={image_id},a=q,t={t},f=32,s={width},v={height},S={size};{payload}\x1b\\");
     let mut out = Vec::new();
     emit(&mut out, seq.as_bytes(), wrapper);
     out
@@ -95,8 +96,9 @@ pub(crate) fn kitty_transmit_named(
     let payload = BASE64.encode(name);
     let keys = transmit.keys();
     let t = medium.key();
+    let size = u64::from(width) * u64::from(height) * 4;
     let seq = format!(
-        "\x1b_Ga=T,f=32,s={width},v={height},t={t},i={image_id},{keys},q=2;{payload}\x1b\\"
+        "\x1b_Ga=T,f=32,s={width},v={height},t={t},S={size},i={image_id},{keys},q=2;{payload}\x1b\\"
     );
     let mut out = Vec::new();
     emit(&mut out, seq.as_bytes(), wrapper);
@@ -106,7 +108,8 @@ pub(crate) fn kitty_transmit_named(
 pub(crate) fn kitty_transmit_unplaced(image_id: u32, width: u32, height: u32, name: &str, medium: Medium, wrapper: Wrapper) -> Vec<u8> {
     let payload = BASE64.encode(name);
     let t = medium.key();
-    let seq = format!("\x1b_Ga=t,f=32,s={width},v={height},t={t},i={image_id},q=2;{payload}\x1b\\");
+    let size = u64::from(width) * u64::from(height) * 4;
+    let seq = format!("\x1b_Ga=t,f=32,s={width},v={height},t={t},S={size},i={image_id},q=2;{payload}\x1b\\");
     let mut out = Vec::new();
     emit(&mut out, seq.as_bytes(), wrapper);
     out
@@ -238,7 +241,8 @@ pub(crate) fn kitty_frame_edit_inline(edit: FrameEdit, rgba: &[u8], wrapper: Wra
 pub(crate) fn kitty_frame_edit_named(edit: FrameEdit, name: &str, medium: Medium, wrapper: Wrapper) -> Vec<u8> {
     let payload = BASE64.encode(name);
     let t = medium.key();
-    let seq = format!("\x1b_G{},t={t},q=2;{payload}\x1b\\", edit.keys());
+    let size = u64::from(edit.width) * u64::from(edit.height) * 4;
+    let seq = format!("\x1b_G{},t={t},S={size},q=2;{payload}\x1b\\", edit.keys());
     let mut out = Vec::new();
     emit(&mut out, seq.as_bytes(), wrapper);
     out
@@ -410,11 +414,25 @@ mod tests {
             Wrapper::None,
         );
         let text = String::from_utf8(out).unwrap();
-        assert!(text.starts_with("\x1b_Ga=T,f=32,s=40,v=20,t=s,i=9,p=1,C=1,z=7,N=1,q=2;"));
+        assert!(text.starts_with("\x1b_Ga=T,f=32,s=40,v=20,t=s,S=3200,i=9,p=1,C=1,z=7,N=1,q=2;"));
         assert_eq!(
             kitty_delete_placement(9),
             b"\x1b_Ga=d,d=i,i=9,p=1,q=2\x1b\\"
         );
+    }
+
+    #[test]
+    fn named_payloads_bound_reads_to_pixels_instead_of_pool_capacity() {
+        let edit = FrameEdit { image_id: 1, x: 0, y: 0, width: 2, height: 1, transient: false };
+        for out in [
+            kitty_query_medium(1, "/pooled", Medium::Shared, 2, 1, Wrapper::None),
+            kitty_transmit_unplaced(1, 2, 1, "/pooled", Medium::Shared, Wrapper::None),
+            kitty_frame_edit_named(edit, "/pooled", Medium::Shared, Wrapper::None),
+        ] {
+            let text = String::from_utf8(out).unwrap();
+            let controls = text.split_once(';').unwrap().0;
+            assert!(controls.split(',').any(|key| key == "S=8"), "{text:?}");
+        }
     }
 
     #[test]
