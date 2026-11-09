@@ -1,0 +1,33 @@
+.github/workflows/fork-checks.yml
+  s_4541d03bc240df::t_0fbfc198a5f84c 39
+  s_4541d03bc240df::t_f0be0aeb7fa968 43
+  s_fc5138a7686b50::t_7fc4e58fe4c0e5 41-42
+scripts/sync-upstream.sh
+  s_4541d03bc240df::t_8d7957d0e06fed 23-26
+scripts/test-sync-upstream.py
+  s_4541d03bc240df::t_0b7851ac196107 5,128-142
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "297ab94a73986aeb1fb64fdef660431296ac089f",
+  "prompts": {},
+  "sessions": {
+    "s_4541d03bc240df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bd09-f672-7982-8a4f-e1e208a96834",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": null
+    },
+    "s_fc5138a7686b50": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1acc4-2dc6-7760-9eae-12ebbd0f80c9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Roshan Bhatia <rshnbhatia@gmail.com>"
+    }
+  }
+}
