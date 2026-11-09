@@ -35,8 +35,10 @@ jobs:
           workspaces: pixel/engine
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: PIXEL_SKIP_DOWNLOAD=1 node pixel/packages/pixel/scripts/postinstall.mjs
-      - run: pnpm --filter shared build
       - run: pnpm --filter @zenbu-labs/pixel build
+      - run: pnpm --filter shared build
       - run: pnpm --filter terminal-browser test
-      - run: cargo test --manifest-path pixel/engine/Cargo.toml -p pixel-terminal
+      - run: cargo test --manifest-path pixel/engine/Cargo.toml -p pixel-terminal -- --test-threads=1
+        env:
+          TMPDIR: /tmp
       - run: python3 scripts/test-sync-upstream.py
