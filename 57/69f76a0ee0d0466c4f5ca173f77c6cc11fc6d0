@@ -1,0 +1,21 @@
+pixel/engine/crates/pixel-terminal/src/kitty.rs
+  s_4541d03bc240df::t_144e83e39758e6 425-435
+  s_4541d03bc240df::t_c96365721b1d61 77-78,99,101,111-112,244-245,417
+  s_4541d03bc240df::t_73c501ffb72373 424,436-437
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5769f76a0ee0d0466c4f5ca173f77c6cc11fc6d0",
+  "prompts": {},
+  "sessions": {
+    "s_4541d03bc240df": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bd09-f672-7982-8a4f-e1e208a96834",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": null
+    }
+  }
+}
