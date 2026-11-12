@@ -110,6 +110,7 @@ export interface PathProps {
   d: string;
   stroke: ShapeStroke;
   viewBox?: number;
+  glyph?: string;
   onClick?: (event: ClickEvent) => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
@@ -217,6 +218,7 @@ export interface ImageProps {
   style?: Style;
   id?: string;
   src: string;
+  glyph?: string;
   onClick?: (event: ClickEvent) => void;
   placeholder?: React.ReactNode;
   error?: React.ReactNode;
@@ -372,6 +374,7 @@ function serializeProps(
     base.shape = {
       d: props.d ?? "",
       viewBox: props.viewBox,
+      glyph: props.glyph,
       stroke: {
         width: props.stroke.width,
         color: parseColor(props.stroke.color),
@@ -389,6 +392,7 @@ function serializeProps(
     base.image = {
       src: props.src ?? "",
       confirmedEqualTo: props.advanced?.confirmedEqualTo,
+      glyph: props.glyph,
     };
   } else if (type === "input") {
     const valueChanged = !prevProps || props.value !== prevProps.value;
@@ -649,6 +653,11 @@ const hostConfig = {
       scrollTo: (offset: number, smooth = false) => {
         const b = instance.bridge;
         b.push(instance.view, { op: "scrollTo", id: instance.id, offset, smooth });
+        b.flush();
+      },
+      scrollBy: (delta: number) => {
+        const b = instance.bridge;
+        b.push(instance.view, { op: "scrollBy", id: instance.id, delta });
         b.flush();
       },
       scrollIntoView: (smooth = false) => {
