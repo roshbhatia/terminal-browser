@@ -1410,7 +1410,7 @@ impl Tree {
         let (ahead, behind) = if follow_end { (0.25, 1.25) } else { (1.25, 0.25) };
         let (mut below, mut above) = (anchor, anchor);
         let ahead_until = Instant::now() + LOOK_AHEAD_BUDGET;
-        let mut reach = 0.0;
+        let mut reach = if follow_end { 0.0 } else { anchor_y - position };
         while below < rows.len() && reach < view * ahead {
             if !follow_end && reach >= view && Instant::now() > ahead_until {
                 break;
@@ -1650,16 +1650,9 @@ impl Tree {
                 if !children.is_empty() {
                     self.image_slot_parents.insert(id);
                 }
-                let has_placeholder = children
-                    .iter()
-                    .any(|&c| self.node(c).slot == Some(SlotKind::Placeholder));
                 let status = crate::image_cache::status(&image.src, &image.equal_to);
-                let size = if !has_placeholder && status == ImageStatus::Pending {
-                    None
-                } else {
-                    crate::image_cache::image_size(&image.src, &image.equal_to)
-                        .or((status == ImageStatus::Failed).then_some((32, 32)))
-                };
+                let size = crate::image_cache::image_size(&image.src, &image.equal_to)
+                    .or((status == ImageStatus::Failed).then_some((32, 32)));
                 Some(MeasureCtx::Image {
                     size,
                     src: image.src,

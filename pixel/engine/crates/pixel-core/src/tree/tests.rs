@@ -1968,3 +1968,91 @@ fn a_row_with_a_flex_shrink_0_child_pulled_up_by_a_negative_margin_keeps_its_hei
     let ys: Vec<f32> = (0..3).map(|i| tree.node(tree.find(&format!("row{i}")).unwrap()).list_y).collect();
     assert_eq!(ys, vec![0.0, 60.0, 120.0]);
 }
+
+#[test]
+fn laying_out_images_reads_their_headers_and_decodes_none() {
+    let dir = std::env::temp_dir().join(format!("pixel-tree-undrawn-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let mut tree = Tree::new((300.0, 200.0));
+    let mut images = Vec::new();
+    for i in 0..8 {
+        let path = dir.join(format!("shot-{i}.png"));
+        image::RgbaImage::from_pixel(30, 60, image::Rgba([0, 0, 200, 255])).save(&path).unwrap();
+        let image = tree.create(Props {
+            image: Some(ImageProps { src: path.to_string_lossy().to_string(), equal_to: Vec::new(), glyph: None }),
+            ..Props::default()
+        });
+        tree.append(tree.root(), image);
+        images.push(image);
+    }
+    for _ in 0..3 {
+        tree.mark_layout();
+        tree.flush_layout(&mut crate::fonts::FontRegistry::bundled(), 16.0);
+    }
+    let rect = tree.rect(images[7]).unwrap();
+    assert!(rect.h > 0.0 && rect.h == rect.w * 2.0, "sized from the header before any pixels: {rect:?}");
+    std::thread::sleep(std::time::Duration::from_millis(50));
+    let drained = crate::image_cache::drain_completed();
+    assert!(!drained.landed && !drained.redraw, "layout decoded nothing");
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn rows_on_screen_below_a_row_taller_than_the_screen_are_measured_again() {
+    let rows = |grown: usize, added: bool| {
+        let block = |key: &str, lines: usize| Desc {
+            key: Some(key.into()),
+            style: Style { flex_direction: FlexDirection::Column, flex_shrink: 0.0, ..Style::default() },
+            children: (0..lines).map(|k| Desc { key: Some(format!("{key}-{k}")), style: Style { height: Dimension::Px(10.0), ..Style::default() }, ..Desc::default() }).collect(),
+            ..Desc::default()
+        };
+        let mut children = vec![block("tall", 20), block("cards", 2 + grown)];
+        if added {
+            children.push(block("sent", 3));
+        }
+        vec![Desc {
+            style: Style { width: Dimension::Px(40.0), height: Dimension::Px(100.0), overflow: Overflow::Scroll, layout: Layout::List, ..Style::default() },
+            key: Some("list".into()),
+            children,
+            ..Desc::default()
+        }]
+    };
+    let mut tree = tree_of((40.0, 100.0), rows(0, false));
+    scroll_list(&mut tree, 150.0);
+    tree.reconcile(Desc { children: rows(4, false), ..Desc::default() });
+    tree.flush_layout(&mut crate::fonts::FontRegistry::bundled(), 16.0);
+    tree.reconcile(Desc { children: rows(4, true), ..Desc::default() });
+    tree.flush_layout(&mut crate::fonts::FontRegistry::bundled(), 16.0);
+    let cards = tree.rect(tree.find("cards").unwrap()).unwrap();
+    let sent = tree.rect(tree.find("sent").unwrap()).unwrap();
+    assert_eq!(cards.h, 60.0, "the grown row is drawn at its new height");
+    assert_eq!(sent.y, cards.y + cards.h, "the row after it starts where it ends, not over it");
+}
+
+#[test]
+fn a_list_following_its_end_measures_its_last_row_again_when_it_grows() {
+    let rows = |last: f32| list_of(20, move |i| if i == 19 { last } else { 20.0 }, Style { scroll_anchor: ScrollAnchor::End, ..Style::default() });
+    let mut tree = tree_of((40.0, 100.0), rows(20.0));
+    tree.reconcile(Desc { children: rows(60.0), ..Desc::default() });
+    tree.flush_layout(&mut crate::fonts::FontRegistry::bundled(), 16.0);
+    assert_eq!(tree.rect(tree.find("row19").unwrap()).unwrap().h, 60.0);
+}
+
+#[test]
+fn cards_that_exactly_fill_a_wrapping_row_stay_on_one_line() {
+    let cw = 14.0411f32;
+    let room = 59.0 * cw;
+    let card = ((room - cw) / 2.0).floor();
+    let grid = Desc {
+        key: Some("grid".into()),
+        style: Style { flex_direction: FlexDirection::Row, flex_wrap: true, gap: cw, ..Style::default() },
+        children: (0..2).map(|i| Desc { key: Some(format!("c{i}")), style: Style { width: Dimension::Px(card), height: Dimension::Px(281.0), flex_shrink: 0.0, ..Style::default() }, ..Desc::default() }).collect(),
+        ..Desc::default()
+    };
+    let holder = Desc { style: Style { padding: crate::style::Edges { left: 2.0 * cw, ..Default::default() }, ..Style::default() }, children: vec![grid], ..Desc::default() };
+    let width = 63.0 * cw;
+    let tree = tree_of((width, 1000.0), vec![Desc { style: Style { width: Dimension::Px(width), flex_direction: FlexDirection::Column, padding: crate::style::Edges { left: cw, right: cw, ..Default::default() }, ..Style::default() }, children: vec![holder], ..Desc::default() }]);
+    let rect = |key: &str| tree.rect(tree.find(key).unwrap()).unwrap();
+    assert_eq!(rect("c1").y, rect("c0").y, "the second card stays beside the first");
+    assert!(rect("c1").y + rect("c1").h <= rect("grid").y + rect("grid").h, "the row is as tall as its cards");
+}
