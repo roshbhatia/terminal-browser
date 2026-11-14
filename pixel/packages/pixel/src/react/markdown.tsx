@@ -212,7 +212,7 @@ const Block = memo(
     const indent = block.listDepth * rem * 1.3;
     return (
       <Box style={{ margin: { left: indent } }}>
-        <Box style={{ width: rem * 1.4, flexShrink: 0 }}>
+        <Box style={{ minWidth: rem * 1.4, flexShrink: 0 }}>
           {block.itemStart && (
             <Text style={{ color: block.task != null ? theme.link : theme.muted }}>
               {marker(block)}
@@ -370,6 +370,7 @@ function styledSpans(
     italic: s.italic,
     underline: Boolean(s.link),
     strikethrough: s.strikethrough,
+    link: s.link ?? undefined,
   }));
   if (!opts.cover) return styled;
   const bytes = Buffer.byteLength(text);

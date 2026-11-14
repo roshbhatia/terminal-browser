@@ -6,7 +6,7 @@ use pixel_core::{
     HighlightArea, ImageProps, InputProps, Inset, InsetValue, Justify, LineCap, LineJoin,
     Layout, LinearGradient, NodeId, Paint,
     Overflow, Position, Props, ScrollAnchor, ScrollbarStyle, SelectionMode, ShapeProps, ShapeStroke,
-    SlotKind, Style, TextSpan, Tree, parse_path_data,
+    SlotKind, Style, TextLink, TextSpan, Tree, parse_path_data,
 };
 use serde::Deserialize;
 
@@ -104,6 +104,10 @@ enum Op {
         offset: f32,
         #[serde(default)]
         smooth: bool,
+    },
+    ScrollBy {
+        id: u32,
+        delta: f32,
     },
     SetClearColor {
         color: Color,
@@ -314,6 +318,8 @@ struct ShapeDto {
     stroke: StrokeDto,
     #[serde(default)]
     view_box: Option<f32>,
+    #[serde(default)]
+    glyph: Option<String>,
 }
 
 impl ShapeDto {
@@ -321,6 +327,7 @@ impl ShapeDto {
         ShapeProps {
             cmds: parse_path_data(&self.d),
             view_box: self.view_box,
+            glyph: self.glyph,
             stroke: ShapeStroke {
                 width: self.stroke.width,
                 color: self.stroke.color,
@@ -355,6 +362,8 @@ struct SpanDto {
     underline: bool,
     #[serde(default)]
     strikethrough: bool,
+    #[serde(default)]
+    link: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -363,6 +372,8 @@ struct ImageDto {
     src: String,
     #[serde(default)]
     confirmed_equal_to: Vec<String>,
+    #[serde(default)]
+    glyph: Option<String>,
 }
 
 #[derive(Deserialize, Default)]
@@ -765,6 +776,7 @@ impl PropsDto {
             image: self.image.map(|i| ImageProps {
                 src: i.src,
                 equal_to: i.confirmed_equal_to,
+                glyph: i.glyph,
             }),
             surface: self.surface,
             slot: match self.slot.as_deref() {
@@ -785,6 +797,11 @@ impl PropsDto {
             drag_events: self.drag_events,
             selection_events: self.selection_events,
             move_events: self.move_events,
+            links: self
+                .spans
+                .iter()
+                .filter_map(|s| Some(TextLink { start: s.start, end: s.end, target: s.link.clone()? }))
+                .collect(),
             spans: self
                 .spans
                 .into_iter()
@@ -918,6 +935,11 @@ fn apply_op(
         Op::ScrollTo { id, offset, smooth } => {
             if let Some(node) = map.live(tree, id) {
                 engine.scroll_to(view, node, offset, smooth);
+            }
+        }
+        Op::ScrollBy { id, delta } => {
+            if let Some(node) = map.live(tree, id) {
+                engine.scroll_by(view, node, delta);
             }
         }
         Op::ScrollIntoView { id, smooth } => {
@@ -1196,7 +1218,7 @@ mod blur_tests {
 
     impl Backend for Quiet {
         fn start(&mut self) -> io::Result<HostInfo> {
-            Ok(HostInfo { metrics: Metrics { window: (400, 200), cell: (10, 20) }, colors: HostColors::default() })
+            Ok(HostInfo { metrics: Metrics { window: (400, 200), cell: (10, 20) }, colors: HostColors::default(), device: pixel_core::Device::default() })
         }
         fn waker(&mut self) -> io::Result<Waker> {
             Ok(Waker::new(|| {}))
